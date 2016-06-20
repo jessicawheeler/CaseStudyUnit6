@@ -1,0 +1,145 @@
+---
+title: "JWheelerCaseStudyUnit6"
+author: "Jessica Wheeler"
+date: "Due June 20, 2016"
+output: html_document
+keep_md: TRUE
+---
+
+
+## Introduction
+> In this case study, we examine 2 datasets from the World Bank: one titled "GDP" containing the GDP ranking for countries and more, and one entited "Education" containing income groups and more information on each country.  We will merge these datasets, explore the merged dataset and examine how GDP ranking relates to income group.  
+
+
+## Loading, Cleaning, and Merging the datasets
+
+```{r Makefile, echo=TRUE}
+#This makefile sources r code to load, clean, then merge the two datasets:
+source("Makefile.R")
+
+#Once sourced, we have an object called merged which contains columns 1-6 of the merged dataset with information on countrycode, GDPranking, country, millionsUSdollars, and income.group.
+
+#Check NA's:
+sum(is.na(merged))
+
+```
+  
+
+
+#Questions
+
+**1. Match the data based on country short code.  How many of the IDs match?**  
+* In this step, first we check how many country shortcodes are in each individual dataset.   
+* In order to accomplish this, I've created a vector for the column countrycode in each dataset.  
+
+```{r}
+#Checking the country shortcodes for gdpdata:
+gdpcc <- gdpdata[, 1]
+gdpcc
+
+#Checking the country shortcodes for educationdata:
+educationcc <- educationdata[, 1]
+educationcc
+```
+> We see that there are 234 levels of country shortcodes for educationdata and 190 in gdpdata.  When merged, there are now 235 total countrycodes so that means only **1 countrycode was added after merging.**  
+  
+  
+  
+**2. Sort the data frame in ascending order by GDP rank (so the United States is first). What is the 13th country in the resulting data frame?**
+
+```{r sorting the data by GDP rank, echo=TRUE}
+sortedrank <- merged[order(desc(merged$millionsUSdollars),merged$GDPranking),]
+head(sortedrank, n=20)
+```
+
+> The 13th country in the dataframe is **Spain.**  
+
+
+
+**3. What are the average GDP rankings for the "High income:OECD" and "High income: Non-OECD" groups?**  
+
+* As I came across this question, I had another question: What is OECD?  According to [usoecd](http://usoecd.usmission.gov/mission/overview.htmlo), it is the Organization for Economic Cooperation and Development, which is a "unique forum where governments of 34 democracies with market economies work with each other, as well as with more than 70 non-member economies to promote economic growth, prosperity, and sustainable development."  
+
+```{r, echo=TRUE}
+#Let's create a subset of GDP ranking and country name:
+countryrank <- merged
+
+#Let's convert GDPranking into a numeric (for some reason, when I did this before merging the datasets, the ranking became out of order after merging, so we will do this now):
+countryrank$GDPranking <- as.numeric(countryrank$GDPranking)
+
+#Check of NA's and get rid of them:
+sum(is.na(countryrank))
+countryrank <-na.omit(countryrank)
+
+#We could use the tapply function to find the sum of each income group:
+tapply(countryrank$GDPranking, countryrank$income.group, mean)
+
+```
+> As can be seen in the output above, the average GDP ranking for the High Income: OECD group is 110.066 while the average GDP ranking for the High Income: nonOECD group is 93.739.
+
+* The output above also shows the average GDP ranking for the rest of the income groups.  From this we can see that the Low income group has the lowest average GDP ranking, followed by the High Income: nonOECD group.  The highest average GDP rankings are in the groups Lower middle income, upper middle income, and High income: OECD.  Thus we can conclude that being in the high income group does not necessarily indicate a high average GDP ranking.  
+<br>
+
+
+**4. Plot the GDP for all of the countries.  Use ggplot2 to color the plot by Income Group.**
+```{r, echo=TRUE}
+
+#Creating the basic plot:
+plot <- ggplot(countryrank, aes(countrycode, GDPranking, color=factor(income.group))) +geom_point() +stat_smooth(se = F)
+
+#Title for the plot:
+p <- plot+ggtitle('GDP Ranking for all countries, colored by Income Group')
+#Turn off the legend title
+p+theme(legend.title=element_blank()) +theme(axis.text.x=element_text(angle=50, size=5, vjust=0.5)) 
+```
+  
+> The plot above appears to look like a random cloud.  Although the income groups are distinguished by color, each color can be seen on each quadrant of the plot.  Therefore, I think it is safe to say that there is no linear relationship between income group and GDP ranking.  In other words, a high GDP ranking does not necessarily indicate that a country is in a high income group.
+  
+ <br> 
+**5. Cut the GDP ranking into 5 separate quantile groups.  Make a table vs. Income Group.  How many countries are Lower middle income but among the 38 nations with highest GDP?**  
+
+```{r, echo=TRUE}
+#GDP ranking goes from 1 to 191, we will divide the rankings into these 5 groups:
+Q1 <- subset(countryrank, GDPranking <=38)
+Q2 <- subset(countryrank, GDPranking >38 | GDPranking <=76)
+Q3 <- subset(countryrank, GDPranking >76 | GDPranking <=114)
+Q4 <- subset(countryrank, GDPranking >114 | GDPranking <=152)
+Q5 <- subset(countryrank, GDPranking >=152)
+
+#Using the code above, we can use the sum function to answer the question of how many countries are in the lower middle income group and are in Q1, among the 38 nations with the highest GDP:
+sum(Q1$income.group == "Lower middle income")
+
+#Let's create a new object with only the columns we want to make a data table- which are GDP ranking and income.group:
+quantile <- countryrank[, c(2,6)]
+
+#To make a table of the subsets Q1-Q5 vs. income group:
+#First we'll convert GDPranking into a numeric vector and sort the data while assigning it to a new object:
+quantile$GDPranking <- as.numeric(quantile$GDPranking)
+sortedq <- quantile[order(countryrank$GDPranking),]
+
+
+#Then, let's cut the data into respective quantile groups according to GDP rank and name those Q1 through Q5:
+quantileranks <- cut(sortedq$GDPranking, breaks=c(-0.01, 37.99, 75.99, 113.99, 152.99, 999.99), labels=c("Q1", "Q2", "Q3", "Q4", "Q5"))
+
+#The object quantileranks shows the sets of Q1-Q5 of the dataset.
+#I'll add a new column (Q) to the data frame sortedq to contain the respective quantile groups:
+sortedq$Q <- quantileranks
+#Now this data set contains 3 columns: GDP ranking, income group, and Q (quantile).
+
+#I'll subset the data and choose only the columns we want: Income group and Q:
+datatable <- sortedq[, 2:3]
+datatable
+
+```
+  
+> As can be seen in the output above, there are 9 out of the 38 nations with the highest GDP ranking that classify as Lower middle income.
+
+
+#Conclusion
+> In merging the two datasets above, we could examine the relationship between the GDP ranking of a country as it relates to the country's income group category.
+  
+* First we observed the merged dataset and saw that only one country shortcode was created which means all the others in each dataset were "matched."    
+* Then, we saw that the average GDP ranking for the High Income: OECD group is a bit higher than that of the High Income: nonOECD group.    
+* The scatterplot showed that GDP ranking does not indicate income group.
+* Finally, there were a total of 9 out of the 38 countries that have the highest GDP ranking that are classified as Lower middle income.  This shows that a country does not necessarily need to be classified as high income to have a high GDP ranking.
+  
