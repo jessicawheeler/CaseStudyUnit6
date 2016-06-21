@@ -1,7 +1,8 @@
 # CaseStudyUnit6
 This is the Case Study for MSDS6301 Unit 6 wherein 2 datasets from the world bank website are downloaded and analyzed.
 
-In the main directory is the JWheelerCaseStudyUnit6.Rproj - the RStudio project that contains all the relevant files, as well as the Makefile.R that sources loading, cleaning, and merging the data.
+In the main directory is the JWheelerCaseStudyUnit6.Rproj - the RStudio project that contains all the relevant files, as well as the Makefile.R that sources loading, cleaning, and merging the data.  
+There are 2 additional files in the main directory- JWCSUnit6.doc and JWCSUnit6.md for viewing purposes.
 
 
 - There are 3 folders:
